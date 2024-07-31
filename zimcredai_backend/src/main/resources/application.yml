@@ -3,7 +3,7 @@ server:
 
 spring:
   application:
-    name: zimcredai
+    name: zimcred.ai
   jpa:
     database: POSTGRESQL
     show-sql: true
@@ -11,8 +11,8 @@ spring:
       ddl-auto: create-drop
   datasource:
     url: "jdbc:postgresql://localhost:5432/zimcred"
-    username: "postgres"
-    password: "@Nuttertools1"
+    username: "intela"
+    password: "intela"
     driverClassName: org.postgresql.Driver
   sql:
     init:
