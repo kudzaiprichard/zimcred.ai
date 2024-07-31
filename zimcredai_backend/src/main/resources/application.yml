@@ -1,0 +1,27 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: zimcredai
+  jpa:
+    database: POSTGRESQL
+    show-sql: true
+    hibernate:
+      ddl-auto: create-drop
+  datasource:
+    url: "jdbc:postgresql://localhost:5432/zimcred"
+    username: "postgres"
+    password: "@Nuttertools1"
+    driverClassName: org.postgresql.Driver
+  sql:
+    init:
+      platform: postgres
+
+application:
+  security:
+    jwt:
+      secret-key: 8d4fed75477d160c393db8a22edce23a5ae7971b4533077d89ac0016dd92c879d21791073310294924cb896443a8214cfdc129baa42af8b3030a397382a93532
+      expiration: 86400000
+      refresh-token:
+        expiration: 604800000
