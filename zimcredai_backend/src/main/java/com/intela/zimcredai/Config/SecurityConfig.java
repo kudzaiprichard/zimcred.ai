@@ -31,6 +31,7 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests((authorize)->authorize
                         .requestMatchers("/api/v1/auth/**").permitAll()
+                        .requestMatchers("/actuator/**").permitAll()
 
                         // Check if user has role ROLE_ADMIN
                         // Admin and Employee endpoints

@@ -4,11 +4,13 @@ server:
 spring:
   application:
     name: zimcred.ai
+
   jpa:
     database: POSTGRESQL
     show-sql: true
     hibernate:
       ddl-auto: create-drop
+
   datasource:
     url: "jdbc:postgresql://localhost:5432/zimcred"
     username: "intela"
@@ -18,6 +20,14 @@ spring:
     init:
       platform: postgres
 
+  devtools:
+    restart:
+      enabled: true
+    livereload:
+      enabled: true
+    remote:
+      enabled: false
+
 application:
   security:
     jwt:
@@ -25,3 +35,16 @@ application:
       expiration: 86400000
       refresh-token:
         expiration: 604800000
+
+looging:
+  level:
+    org:
+      hibernate: DEBUG
+      springfamework: INFO  
+
+
+management:
+  endpoints:
+    web:
+      exposure:
+        inclue: "health,info,metrics,env"

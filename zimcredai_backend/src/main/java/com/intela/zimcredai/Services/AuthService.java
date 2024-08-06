@@ -7,7 +7,6 @@ import com.intela.zimcredai.Models.User;
 import com.intela.zimcredai.Repositories.TokenRepository;
 import com.intela.zimcredai.Repositories.UserRepository;
 import com.intela.zimcredai.RequestResponseModels.*;
-import com.intela.zimcredai.Services.JwtService;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -75,10 +74,11 @@ public class AuthService {
                 savedUser.getEmail(), savedUser.getPassword()
         );
         SecurityContextHolder.getContext().setAuthentication(authentication);
-
+ 
         return AuthenticationResponse.builder()
                 .accessToken(jwtToken)
                 .refreshToken(refreshToken)
+                .createdAt(savedUser.getCreatedAt())
                 .build();
     }
 

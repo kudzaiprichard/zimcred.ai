@@ -1,5 +1,7 @@
 package com.intela.zimcredai.RequestResponseModels;
 
+import java.time.LocalDateTime;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -12,4 +14,5 @@ import lombok.NoArgsConstructor;
 public class AuthenticationResponse {
     private String accessToken;
     private String refreshToken;
+    private LocalDateTime createdAt;
 }

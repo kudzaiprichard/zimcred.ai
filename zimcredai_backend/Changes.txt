@@ -1,0 +1,10 @@
+Changes to be updated in the phase one readme file
+- Introducted to different model connecting to the user model [Customer and Coordinator]
+- For the user model it should only hold user login creadentials
+- For the Customer model which was presented by the user model it should hold Customer details only
+- Loan information which was presented on the user model should be saved on CustomerProfile model
+- On document model change fileUrl to just file
+- Added title and seen attribute to Notification model
+- Removed CustomerLoanHistory model will just pull all the user LoanApplication then use them as the customer history history
+- Removed portfolio category in customer profile
+- Changed admin endpoints to coordinator endpoints

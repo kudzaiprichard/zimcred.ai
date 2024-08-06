@@ -7,4 +7,7 @@ import lombok.*;
 @AllArgsConstructor
 @NoArgsConstructor
 public class CustomerProfileResponse {
+    public String firstName;
+    public String lastName;
+    // Todo: Add more attributes
 }
