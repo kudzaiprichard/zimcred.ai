@@ -17,7 +17,7 @@ import lombok.*;
 @Entity(name = "customers")
 public class Customer {
     /**
-     *  Todo: Make sure to caputer neccessary user data to use for ml predictions
+     *  Todo: Make sure to capture necessary user data to use for ml predictions
     */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -25,6 +25,8 @@ public class Customer {
     private String firstName;
     private String lastName;
     private String mobileNumber;
+    private String profileImage; // base64
+    private String backgroundImage; // base64
     // Get all customers details for prediction
     private Boolean sex; // 1 Male / 0 Female
     private String address; // Location

@@ -1,6 +1,6 @@
 Changes to be updated in the phase one readme file
-- Introducted to different model connecting to the user model [Customer and Coordinator]
-- For the user model it should only hold user login creadentials
+- Introduced to different model connecting to the user model [Customer and Coordinator]
+- For the user model it should only hold user login credentials
 - For the Customer model which was presented by the user model it should hold Customer details only
 - Loan information which was presented on the user model should be saved on CustomerProfile model
 - On document model change fileUrl to just file
@@ -8,3 +8,9 @@ Changes to be updated in the phase one readme file
 - Removed CustomerLoanHistory model will just pull all the user LoanApplication then use them as the customer history history
 - Removed portfolio category in customer profile
 - Changed admin endpoints to coordinator endpoints
+NB : Users cannot register they will only be a login page and customers will be registered by the bank
+- Update customer endpoints to v1/api/customer/ and separate auth endpoints with customer endpoints
+- Loan Status tracking end point `get document status` moved to documents api section in customer endpoints
+- Moved loan history from customer profiling to loan application section and added get customer portfolio to customer profiling
+- Added application status under loan application section on customer section
+- Added Loan product section on the customer endpoints

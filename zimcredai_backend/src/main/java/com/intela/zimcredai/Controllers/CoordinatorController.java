@@ -8,4 +8,12 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/v1/coordinator")
 @RequiredArgsConstructor
 public class CoordinatorController {
+    /*
+    *  Loan Product Management endpoints
+    * */
+
+
+    /*
+     *  Loan Product Management endpoints
+     * */
 }

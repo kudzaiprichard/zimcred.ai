@@ -47,6 +47,12 @@ public class AuthController {
         authService.refreshToken(request, response);
     }
 
+    // Todo: update credentials
+    // Todo: rest password
+    // Todo: delete account
+    // Todo: deactivate account
+    // Todo: activate account
+
     // Get Logged in Coordinator details (get by email)
     @GetMapping("/fetchLoggedInCoordinatorProfile/{email}")
     public ResponseEntity<CoordinatorProfileResponse> fetchCoordinatorProfile(
