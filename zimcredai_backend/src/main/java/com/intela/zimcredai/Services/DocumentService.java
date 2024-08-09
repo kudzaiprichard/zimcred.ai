@@ -66,4 +66,8 @@ public class DocumentService {
     public List<Document> fetchAll() {
         return documentRepository.findAll();
     }
+
+    public List<Document> findByLoanId(Integer loanId) {
+        return null;
+    }
 }

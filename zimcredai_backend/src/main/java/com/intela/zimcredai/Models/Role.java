@@ -1,5 +1,7 @@
 package com.intela.zimcredai.Models;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.intela.zimcredai.Config.GenericEnumDeserializer;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -11,6 +13,7 @@ import java.util.stream.Collectors;
 import static com.intela.zimcredai.Models.Permission.*;
 
 @RequiredArgsConstructor
+@JsonDeserialize(using = GenericEnumDeserializer.class)
 public enum Role {
     ADMIN(
             Set.of(

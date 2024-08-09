@@ -3,6 +3,7 @@ package com.intela.zimcredai.Controllers;
 import com.intela.zimcredai.Models.Customer;
 import com.intela.zimcredai.Services.CustomerService;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.crossstore.ChangeSetPersister;
 import org.springframework.http.ResponseEntity;
@@ -15,12 +16,12 @@ public class CustomerController {
     private final CustomerService customerService;
 
     /*
-    * Profile management endpoints (Create, Read, Update)
-    * */
+     * Profile management endpoints (Create, Read, Update)
+     * */
 
     // Set up profile
     @PostMapping("/create/profile")
-    public ResponseEntity<Customer> createProfile(Customer customer, HttpServletRequest request) {
+    public ResponseEntity<Customer> createProfile(@Valid Customer customer, HttpServletRequest request) {
         return ResponseEntity.ok()
                 .body(this.customerService.create(customer, request));
     }
@@ -78,8 +79,8 @@ public class CustomerController {
     // Get customer portfolio
 
     /*
-    *  Loan Product Endpoints
-    * */
+     *  Loan Product Endpoints
+     * */
 
     // Todo: also add advertisements to advertise and promote loan products
     // Also add endpoint to fetch loan products and allow customer to apply for a loan

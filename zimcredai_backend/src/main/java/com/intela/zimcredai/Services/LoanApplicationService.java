@@ -3,7 +3,6 @@ package com.intela.zimcredai.Services;
 import com.intela.zimcredai.Exception.ResourceNotFoundException;
 import com.intela.zimcredai.Models.LoanApplication;
 import com.intela.zimcredai.Repositories.LoanApplicationRepository;
-import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.BeanUtils;
 import org.springframework.data.crossstore.ChangeSetPersister.NotFoundException;
@@ -50,4 +49,5 @@ public class LoanApplicationService {
     public List<LoanApplication> fetchAll() {
         return loanApplicationRepository.findAll();
     }
+
 }

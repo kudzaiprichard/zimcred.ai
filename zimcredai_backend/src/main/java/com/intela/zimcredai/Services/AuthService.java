@@ -1,15 +1,14 @@
 package com.intela.zimcredai.Services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.intela.zimcredai.Models.Token;
-import com.intela.zimcredai.Models.TokenType;
-import com.intela.zimcredai.Models.User;
-import com.intela.zimcredai.Repositories.TokenRepository;
-import com.intela.zimcredai.Repositories.UserRepository;
+import com.intela.zimcredai.Models.*;
+import com.intela.zimcredai.Repositories.*;
 import com.intela.zimcredai.RequestResponseModels.*;
+import jakarta.mail.MessagingException;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -18,6 +17,8 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import java.io.IOException;
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 import static com.intela.zimcredai.Util.Util.getUserByToken;
@@ -26,9 +27,13 @@ import static com.intela.zimcredai.Util.Util.getUserByToken;
 @RequiredArgsConstructor
 public class AuthService {
     private final UserRepository userRepository;
+    private final CoordinatorRepository coordinatorRepository;
+    private final CustomerRepository customerRepository;
     private final TokenRepository tokenRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final EmailService emailService;
+    private final PendingUserChangeRepository pendingUserChangeRepository;
 
     private void saveUserToken(User user, String jwtToken, TokenType type) {
         var token = Token
@@ -189,21 +194,277 @@ public class AuthService {
         return Boolean.FALSE; // Token is either revoked, expired, or not found
     }
 
-    public CoordinatorProfileResponse fetchCoordinatorDetails(String email) {
-        /*
-        * Todo: Use coordinator service to get coordinator by email
-        *  Convert it to a coordinatorProfileResponse object and return it
-        */
+    // Todo : should this methods be here
+    public Coordinator fetchCoordinatorDetails(String email) {
+        User user = this.userRepository.findByEmail(email)
+                .orElseThrow(() -> new EntityNotFoundException("Coordinator not found with email : " + email));
 
-        return CoordinatorProfileResponse.builder().build();
+        return coordinatorRepository.findByUserId(user.getId())
+                .orElseThrow(() -> new EntityNotFoundException("Coordinator not found with email : " + email));
     }
 
-    public CustomerProfileResponse fetchCustomerDetails(String email) {
-        /*
-         * Todo: Use customer service to get customer by email
-         *  Convert it to a CustomerProfileResponse object and return it
-         */
+    // Todo : should this methods be here
+    public Customer fetchCustomerDetails(String email) {
+        User user = this.userRepository.findByEmail(email)
+                .orElseThrow(() -> new EntityNotFoundException("Customer not found with email : " + email));
 
-        return CustomerProfileResponse.builder().build();
+        return customerRepository.findByUserId(user.getId())
+                .orElseThrow(() -> new EntityNotFoundException("Customer not found with email:" + email));
     }
+
+    // Can also be used to rest password
+    @Transactional
+    public Boolean updateCredentials(UpdateCredentials credentials, HttpServletRequest httpRequest) throws MessagingException, IOException {
+        User user = null;
+        boolean isLoggedIn = false;
+
+        // Try to get the logged-in user
+        try {
+            user = getUserByToken(httpRequest, jwtService, this.userRepository);
+            isLoggedIn = true;
+        } catch (Exception e) {
+            // User is not logged in; handle as a password reset request
+        }
+
+        if (!isLoggedIn) {
+            // Handle password reset for non-logged-in users
+            if (credentials.getPassword() != null && !credentials.getPassword().isEmpty()) {
+                if (credentials.getPassword().equals(credentials.getConfirmPassword())) {
+                    // Validate the email provided for password reset
+                    User userForPasswordReset = userRepository.findByEmail(credentials.getEmail())
+                            .orElseThrow(() -> new RuntimeException("Email not found"));
+
+                    // Mark all existing pending changes as expired
+                    List<PendingUserChange> existingRequests = pendingUserChangeRepository.findByUserId(userForPasswordReset.getId());
+                    existingRequests.forEach(request -> request.setIsExpired(true));
+                    pendingUserChangeRepository.saveAll(existingRequests);
+
+                    // Create a new pending change record
+                    PendingUserChange pendingUserChange = pendingUserChangeRepository.save(PendingUserChange.builder()
+                            .user(userForPasswordReset)
+                            .pendingPassword(passwordEncoder.encode(credentials.getPassword()))
+                            .isExpired(false)
+                            .tokenExpiry(LocalDateTime.now().plusHours(1))
+                            .token(jwtService.generateResetToken(userForPasswordReset))
+                            .build());
+
+                    // Generate a password reset token
+                    String resetLink = httpRequest.getRequestURL().toString().replace(
+                            "/updateCredentialsRequest", "/updateCredentials"
+                    ) + "?token=" + pendingUserChange.getToken();
+
+                    // Save the reset token in the database
+                    saveUserToken(userForPasswordReset, pendingUserChange.getToken(), TokenType.RESET);
+
+                    // Send the password reset email
+                    emailService.sendPasswordResetEmail(userForPasswordReset.getEmail(),userForPasswordReset.getEmail(), resetLink);
+                    return Boolean.TRUE;
+                } else {
+                    throw new RuntimeException("Passwords do not match");
+                }
+            } else {
+                throw new RuntimeException("Password must be provided for password reset");
+            }
+        }
+
+        // Continue with the rest of the updateCredentials logic if logged in
+        boolean emailChanged = false;
+        boolean passwordChanged = false;
+
+        if (isLoggedIn){
+            // Check if the email is being changed
+            if (credentials.getEmail() != null && !credentials.getEmail().isEmpty() && !credentials.getEmail().equals(user.getEmail())) {
+                user.setEmail(credentials.getEmail());
+                user.setIsAccountVerified(Boolean.FALSE); // Unverify account if the email is changed
+                emailChanged = true;
+            }
+
+            // Check if the password is being changed
+            if (credentials.getPassword() != null && !credentials.getPassword().isEmpty()) {
+                if (credentials.getPassword().equals(credentials.getConfirmPassword())) {
+                    user.setPassword(passwordEncoder.encode(credentials.getPassword()));
+                    passwordChanged = true;
+                } else {
+                    throw new RuntimeException("Passwords do not match");
+                }
+            }
+
+            // If either the email or password is changed, send a reset token via email
+            if (emailChanged || passwordChanged) {
+                // Mark all existing pending changes as expired
+                List<PendingUserChange> existingRequests = pendingUserChangeRepository.findByUserId(user.getId());
+                existingRequests.forEach(request -> request.setIsExpired(true));
+                pendingUserChangeRepository.saveAll(existingRequests);
+
+                // Create a new pending change record
+                PendingUserChange pendingChange = pendingUserChangeRepository.save(
+                        PendingUserChange.builder()
+                                .user(user)
+                                .pendingEmail(emailChanged ? credentials.getEmail() : null)
+                                .pendingPassword(passwordChanged ? passwordEncoder.encode(credentials.getPassword()) : null)
+                                .token(jwtService.generateResetToken(user))
+                                .tokenExpiry(LocalDateTime.now().plusHours(1))
+                                .isExpired(false)
+                                .build()
+                );
+
+                String resetLink = httpRequest.getRequestURL().toString().replace("/updateCredentialsRequest", "/updateCredentials") + "?token=" + pendingChange.getToken();
+
+                // Determine the name to use in the email
+                String name;
+                if (user.getRole() == Role.COORDINATOR) {
+                    User finalUser = user;
+                    Coordinator coordinator = coordinatorRepository.findByUserId(user.getId())
+                            .orElseThrow(() -> new EntityNotFoundException("Coordinator not found with email : " + finalUser.getEmail()));
+
+                    name = coordinator.getFirstName() + " " + coordinator.getLastName();
+                } else if (user.getRole() == Role.CUSTOMER) {
+                    User finalUser1 = user;
+                    Customer customer = customerRepository.findByUserId(user.getId())
+                            .orElseThrow(() -> new EntityNotFoundException("Customer not found with email: " + finalUser1.getEmail()));
+                    name = customer.getFirstName() + " " + customer.getLastName();
+                } else {
+                    name = user.getEmail(); // Default to email if name is not available
+                }
+
+                // Send the credentials reset email
+                emailService.sendPasswordResetEmail(name, user.getEmail(), resetLink);
+            }
+        }
+        return Boolean.TRUE;
+
+    }
+
+
+    @Transactional
+    public Boolean confirmCredentialsUpdate(String token) {
+        // Find the token in the database
+        Optional<PendingUserChange> pendingChangeOptional = pendingUserChangeRepository.findByToken(token);
+
+        if (pendingChangeOptional.isPresent()) {
+            PendingUserChange pendingChange = pendingChangeOptional.get();
+
+            // Check if the token is expired or invalid
+            if (pendingChange.getIsExpired() || pendingChange.getTokenExpiry().isBefore(LocalDateTime.now())) {
+                throw new RuntimeException("Invalid or expired token.");
+            }
+
+            User user = pendingChange.getUser();
+
+            // Apply the pending email and password changes
+            if (pendingChange.getPendingEmail() != null) {
+                user.setEmail(pendingChange.getPendingEmail());
+                user.setIsAccountVerified(Boolean.FALSE); // Unverify the account since the email changed
+            }
+
+            if (pendingChange.getPendingPassword() != null) {
+                user.setPassword(pendingChange.getPendingPassword());
+            }
+
+            userRepository.save(user);
+
+            // Mark all other pending changes for this user as expired
+            List<PendingUserChange> allPendingChanges = pendingUserChangeRepository.findByUserId(user.getId());
+            allPendingChanges.forEach(change -> change.setIsExpired(true));
+            pendingUserChangeRepository.saveAll(allPendingChanges);
+
+            // Expire the token after successful verification
+            pendingChange.setIsExpired(true);
+            pendingUserChangeRepository.save(pendingChange);
+
+            return Boolean.TRUE;
+        }
+
+        throw new RuntimeException("Invalid or expired token.");
+    }
+
+
+
+
+    // Todo: add validation e.g like user must enter something to confirm account deletion
+    public void deleteAccount(HttpServletRequest request) {
+        User user = getUserByToken(request, jwtService, this.userRepository);
+        userRepository.delete(user);
+    }
+
+    public void deactivateAccount(HttpServletRequest request) {
+        User user = getUserByToken(request, jwtService, this.userRepository);
+        user.setIsEnabled(Boolean.FALSE);
+        userRepository.save(user);
+    }
+
+    public void activateAccount(HttpServletRequest request) {
+        User user = getUserByToken(request, jwtService, this.userRepository);
+        user.setIsEnabled(Boolean.TRUE);
+        userRepository.save(user);
+    }
+
+    @Transactional
+    public Boolean confirmEmail(HttpServletRequest httpServletRequest, String token) {
+        // Extract the username from the token
+        String userEmail = jwtService.extractUsername(token);
+
+        // Find the user by email
+        User user = userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new EntityNotFoundException("User not found with email: " + userEmail));
+
+        // Find the token in the database
+        Optional<Token> storedToken = tokenRepository.findByToken(token);
+
+        if (storedToken.isPresent()) {
+            Token tokenEntity = storedToken.get();
+
+            // Validate the token type and ensure it hasn't expired or been revoked
+            if (tokenEntity.getTokenType() == TokenType.RESET &&
+                    !tokenEntity.getExpired() &&
+                    !tokenEntity.getRevoked() &&
+                    jwtService.isTokenValid(token, user)) {
+
+                // Mark the user's account as verified
+                user.setIsAccountVerified(Boolean.TRUE);
+                userRepository.save(user);
+
+                // Expire the token after successful verification
+                tokenEntity.setExpired(Boolean.TRUE);
+                tokenRepository.save(tokenEntity);
+
+                return Boolean.TRUE;
+            }
+        }
+
+        throw new RuntimeException("Invalid or expired token.");
+    }
+
+
+    @Transactional
+    public Boolean confirmEmailRequest(HttpServletRequest httpServletRequest) throws MessagingException, IOException {
+        User user = getUserByToken(httpServletRequest, jwtService, this.userRepository);
+
+        // Generate a reset token
+        String resetToken = jwtService.generateResetToken(user);
+        String resetLink = httpServletRequest.getRequestURL().toString() + "/reset-password?token=" + resetToken;
+
+        // Save the reset token in the database
+        saveUserToken(user, resetToken, TokenType.RESET);
+
+        // Determine the name to use in the email
+        String name;
+        if (user.getRole() == Role.COORDINATOR) {
+            Coordinator coordinator = coordinatorRepository.findByUserId(user.getId())
+                    .orElseThrow(() -> new EntityNotFoundException("Coordinator not found with email : " + user.getEmail()));
+            name = coordinator.getFirstName() + " " + coordinator.getLastName();
+        } else if (user.getRole() == Role.CUSTOMER) {
+            Customer customer = customerRepository.findByUserId(user.getId())
+                    .orElseThrow(() -> new EntityNotFoundException("Customer not found with email: " + user.getEmail()));
+            name = customer.getFirstName() + " " + customer.getLastName();
+        } else {
+            name = user.getEmail(); // Default to email if name is not available
+        }
+
+        // Send the password reset email
+        emailService.sendPasswordResetEmail(name, user.getEmail(), resetLink);
+
+        return Boolean.TRUE;
+    }
+
 }

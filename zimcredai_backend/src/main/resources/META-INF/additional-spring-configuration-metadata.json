@@ -14,5 +14,15 @@
       "name": "application.security.jwt.refresh-token.expiration",
       "type": "java.lang.String",
       "description": "Description for application.security.jwt.refresh-token.expiration."
+    },
+    {
+      "name": "application.security.jwt.reset-token.expiration",
+      "type": "java.lang.String",
+      "description": "Description for application.security.jwt.reset.expiration."
+    },
+    {
+      "name": "application.security.jwt.verify-token.expiration",
+      "type": "java.lang.String",
+      "description": "Description for application.security.jwt.verify.expiration."
     }
   ] }

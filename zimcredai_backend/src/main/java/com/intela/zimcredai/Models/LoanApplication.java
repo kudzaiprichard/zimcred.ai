@@ -44,5 +44,4 @@ public class LoanApplication {
         this.updatedAt = LocalDateTime.now();
     }
 
-
 }

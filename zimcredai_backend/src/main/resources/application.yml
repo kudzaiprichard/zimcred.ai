@@ -28,23 +28,63 @@ spring:
     remote:
       enabled: false
 
+  mail:
+    host: "smtp.gmail.com"
+    port: 587
+    username: "info.facex@gmail.com"
+    password: "sapk rrpu ydwv rmjj"
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
+#  mail:
+#    host: smtp.example.com            # SMTP server host (e.g., smtp.gmail.com)
+#    port: 587                          # SMTP server port (587 is commonly used with TLS/STARTTLS)
+#    username: your-email@example.com   # Your email address (SMTP username)
+#    password: your-email-password      # Your email password (SMTP password)
+#    protocol: smtp                      # Protocol used by the mail server
+#    properties:
+#      mail:
+#        smtp:
+#          auth: true                   # Enable SMTP authentication
+#          starttls:
+#            enable: true               # Enable STARTTLS (Transport Layer Security)
+#          starttls.required: true       # Requires STARTTLS for connections
+#          connection-timeout: 5000       # Connection timeout in milliseconds
+#          timeout: 5000                 # Timeout for SMTP operations
+#          write-timeout: 5000            # Timeout for SMTP write operations
+#          ssl:
+#            trust: "*"
+#            enable: false              # Disable SSL if you use STARTTLS
+#          debug: true                  # Enable debug output for troubleshooting
+
+
 application:
   security:
     jwt:
       secret-key: 8d4fed75477d160c393db8a22edce23a5ae7971b4533077d89ac0016dd92c879d21791073310294924cb896443a8214cfdc129baa42af8b3030a397382a93532
-      expiration: 86400000
+      expiration: 86400000 # 1day
       refresh-token:
-        expiration: 604800000
+        expiration: 604800000 # 7 days
+      reset-token:
+        expiration: 1800000 # 30 minutes
+      verify-token:
+        expiration: 1800000 # 30 minutes
 
-looging:
+logging:
   level:
     org:
       hibernate: DEBUG
-      springfamework: INFO  
+      springframework: INFO
 
 
 management:
   endpoints:
     web:
       exposure:
-        inclue: "health,info,metrics,env"
+        include: "health,info,metrics,env"
+
+
